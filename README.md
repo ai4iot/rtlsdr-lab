@@ -1,15 +1,15 @@
-# Práctica RTL-SDR
-En esta práctica vamos a escuchar la radio con un dispositivo RTL-SDR. Para ello vamos a utilizar el script radio.py que se encuentra en este repositorio. La idea es que el script nos permita escuchar la radio en tiempo real en la salida de audio que nosotros prefiramos. Para ello vamos a utilizar la librería pyrtlsdr que nos permite interactuar con el dispositivo RTL-SDR.
+# RTL-SDR lab
+In this practice, we are going to listen to the radio using an RTL-SDR device. To do this, we will use the ``listen.py`` script found in this repository. The idea is for the script to allow us to listen to the radio in real-time on the audio output of our choice. To achieve this, we will use the`` pyrtlsdr`` library, which enables us to interact with the RTL-SDR device.
 
-Un dispositivo RTL-SDR es un dispositivo que nos permite recibir señales de radio en un rango de frecuencias de 24 MHz a 1.7 GHz. Este dispositivo es muy barato y se puede comprar en cualquier tienda online. En este caso vamos a utilizar el dispositivo RTL2832U que se puede comprar en Amazon por 30€. 
+An RTL-SDR device is a tool that allows us to receive radio signals within a frequency range of 24 MHz to 1.7 GHz. This device is very affordable and can be purchased from any online store. In this case, we'll be using the RTL2832U device, available on Amazon for 30€.
 
 ![Alt text](images/image.png)
 
-Las aplicaciones de este dispositivo son prácticamente infinitas, solo estamos limitados en la tasa de muestreo que nos permite el dispositivo. Podríamos conseguir una tasa de muestreo superior si utilizamos un dispositivo Ettus USRP por ejemplo, pero estos dispositivos son mucho más caros.
+The applications of this device are practically limitless; our only limitation lies in the sampling rate that the device allows. We could achieve a higher sampling rate by using an Ettus USRP device, for example, but these devices are much more expensive.
 
-La máxima tasa de muestreo que admite este dispositivo es de 3.2 MS/s, lo que nos permite recibir señales de radio FM sin problemas, ya que la tasa de muestreo de la señal de radio FM es de 1.5 MHz.
+The maximum sampling rate supported by this device is 3.2 MS/s, allowing us to receive FM radio signals without issues, as the sampling rate for FM radio signals is 1.5 MHz.
 ## Instalación de dependencias
-Crea un entorno virtual de conda con versión de Python 3.6
+Create a Conda virtual environment with Python version 3.6
 
 ```bash
 conda create -n sdr_fm python=3.6
@@ -19,21 +19,20 @@ conda activate sdr_fm
 ```
 pip install numpy pyaudio pyrtlsdr scipy 
 ```
-## Ejecución del script
-Tenemos los siguientes parámetros de configuración:
-
-* --freq (`int`): frecuencia en Hz a la que vamos a escuchar la radio
-* --save (`bool`): si se especifica, se guarda la señal de radio en un fichero de audio
-
-Ejemplo de ejecución:
+## Script Execution
+We have the following configuration parameters:
+* --freq (``int``): frequency in Hz at which we will listen to the radio
+* --save (``bool``): if specified, saves the radio signal to an audio file
+  
+Execution example:
 
 ```
 python listen.py --freq 98000000 --save True
 ```
 ---
-## Explicación del script
+## Script Explanation
 
-En primer lugar importamos las librerías necesarias para el desarrollo del proyecto.
+Firstly, we import the necessary libraries for the project's development.
 
 ```python
 import sys
@@ -48,7 +47,7 @@ import signal
 import wave
 ```
 
-Inicializamos las variables que vamos a utilizar y la salida de audio para nuestro dispositivo. Aquí indicamos la frecuencia que queremos sintonizar y si queremos guardar el audio en un archivo.
+We initialize the variables that we will use and the audio output for our device. Here, we specify the audio channel where we want to redirect the flow and the audio buffer (`audio_data`).
 
 ```python
 SampleStream = List[float]
@@ -58,7 +57,7 @@ audio_rate = 48000
 audio_output = pyaudio.PyAudio().open(format=pyaudio.paInt16, channels=1, rate=audio_rate, output=True)
 audio_data = []
 ```
-Esta función se encargará de guardar los datos de audio en un archivo. Para ello, se le pasa como parámetro el nombre del archivo y los datos de audio hasta el momento en el que se detiene la ejecución del script.
+This function will save the audio data to a file. It takes as parameters the filename and the audio data until the script execution stops.
 
 ```python
 def save_audio_data_to_file():
@@ -70,7 +69,8 @@ def save_audio_data_to_file():
         wf.setframerate(48000)  # Tasa de muestreo en Hz
         wf.writeframes(audio_data_bytes)
 ```
-**Función para manejar la interrupción del teclado (Ctrl+C)**: Gracias a esta función, podremos interrumpir en todo momento la ejecución del script, deteniendo la reproducción de audio y cerrando el dispositivo RTL-SDR. En caso de que hayamos indicado en la configuración que queremos guardar el audio, se guardará el archivo y se cerrará. 
+**Function to handle keyboard interruption (Ctrl+C)**: With this function, we can interrupt the script execution at any time, stopping the audio playback and closing the RTL-SDR device. If we specified in the configuration that we want to save the audio, the file will be saved and closed.
+
 
 ```python
 def signal_handler(sig, frame):
@@ -81,7 +81,7 @@ def signal_handler(sig, frame):
     print("Ctrl+C detectado. Liberando recursos...")
     sdr.close()
 ```
-Con esta función controlamos la reproducción de audio, redireccionándolo a la salida de audio de nuestro dispositivo. En caso de que queramos que se guarde el audio al finalizar la ejecución, iremos añadiendo los datos de audio a una lista.
+With this function, we control the audio playback, directing it to the audio output of our device. If we want to save the audio upon execution completion, we'll add the audio data to a list.
 
 ```python
 def stream_audio(data: AudioStream):
@@ -89,7 +89,7 @@ def stream_audio(data: AudioStream):
         audio_data.append(data)
     audio_output.write(data)
 ```
-La función *process* se encarga de transformar las muestras de radiofrecuencia en una señal de audio que puede ser reproducida.
+The *process* function transforms radio frequency samples into an audio signal that can be played.
 
 ```python
 def process(samples: SampleStream, sdr: RtlSdr) -> None:
@@ -103,7 +103,7 @@ def process(samples: SampleStream, sdr: RtlSdr) -> None:
 
     stream_audio(audio_signal.astype("int16").tobytes())
 ```
-Finalmente, inicializamos el dispositivo RTL-SDR y comenzamos a escuchar la frecuencia indicada en la configuración. 
+Finally, we initialize the RTL-SDR device and start listening to the frequency specified in the configuration.
 
 ```python
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
